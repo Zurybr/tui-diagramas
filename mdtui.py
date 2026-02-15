@@ -73,6 +73,8 @@ class DiagramViewerScreen(Screen):
         ("minus", "zoom_out", "Zoom -"),
         ("up", "scroll_up", "Subir"),
         ("down", "scroll_down", "Bajar"),
+        ("pageup", "page_up", "Página ↑"),
+        ("pagedown", "page_down", "Página ↓"),
         ("c", "show_code", "Código"),
         ("r", "refresh", "Refrescar"),
         ("escape", "back", "Volver"),
@@ -231,14 +233,24 @@ class DiagramViewerScreen(Screen):
             self.zoom_level = self.ZOOM_PRESETS[0]
 
     def action_scroll_up(self) -> None:
-        """Scroll hacia arriba."""
+        """Scroll hacia arriba con smooth scrolling."""
         scroll = self.query_one("#diagram-scroll", ScrollableContainer)
-        scroll.scroll_up()
+        scroll.scroll_home()
 
     def action_scroll_down(self) -> None:
-        """Scroll hacia abajo."""
+        """Scroll hacia abajo con smooth scrolling."""
         scroll = self.query_one("#diagram-scroll", ScrollableContainer)
-        scroll.scroll_down()
+        scroll.scroll_end()
+
+    def action_page_up(self) -> None:
+        """Página arriba."""
+        scroll = self.query_one("#diagram-scroll", ScrollableContainer)
+        scroll.scroll_page_up()
+
+    def action_page_down(self) -> None:
+        """Página abajo."""
+        scroll = self.query_one("#diagram-scroll", ScrollableContainer)
+        scroll.scroll_page_down()
 
     def action_show_code(self) -> None:
         """Mostrar código fuente."""
@@ -413,14 +425,14 @@ class MarkdownViewerScreen(Screen):
         self.action_view_diagram()
 
     def action_scroll_up(self) -> None:
-        """Scroll hacia arriba con teclado."""
+        """Scroll hacia arriba con smooth scrolling."""
         scroll = self.query_one("#markdown-scroll", ScrollableContainer)
-        scroll.scroll_up()
+        scroll.scroll_home()
 
     def action_scroll_down(self) -> None:
-        """Scroll hacia abajo con teclado."""
+        """Scroll hacia abajo con smooth scrolling."""
         scroll = self.query_one("#markdown-scroll", ScrollableContainer)
-        scroll.scroll_down()
+        scroll.scroll_end()
 
     def action_page_up(self) -> None:
         """Página arriba."""

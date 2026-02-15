@@ -338,14 +338,16 @@ ModalScreen {
 /* === SCROLLBARS === */
 Scrollbar {
     background: $surface-darken-2;
+    width: 2;
 }
 
 Scrollbar > .scrollbar--thumb {
-    background: $primary-darken-1;
+    background: $primary;
+    border-radius: 1;
 }
 
 Scrollbar > .scrollbar--thumb:hover {
-    background: $primary;
+    background: $primary-lighten-1;
 }
 
 /* Mensajes de estado */
