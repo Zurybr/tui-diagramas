@@ -815,11 +815,12 @@ class WelcomeScreen(Screen):
 
     def action_dismiss(self) -> None:
         """Cierra la pantalla de bienvenida y muestra el explorador."""
-        # Obtener referencia al app para determinar siguiente pantalla
         app = self.app
-        app.pop_screen()
+        app.call_later(self._navigate_after_welcome)
 
-        # Determinar qué pantalla mostrar después
+    def _navigate_after_welcome(self) -> None:
+        """Navega a la pantalla apropiada después de bienvenida."""
+        app = self.app
         if hasattr(app, 'initial_file') and app.initial_file:
             app.push_screen(MarkdownViewerScreen(app.initial_file))
         else:
@@ -842,13 +843,6 @@ class MDTUI(App):
     def on_mount(self) -> None:
         # Mostrar pantalla de bienvenida al inicio
         self.push_screen(WelcomeScreen())
-
-    def on_welcome_screen_dismissed(self) -> None:
-        """Callback cuando se cierra la pantalla de bienvenida."""
-        if self.initial_file:
-            self.push_screen(MarkdownViewerScreen(self.initial_file))
-        else:
-            self.push_screen(FileBrowserScreen())
 
 
 def main():
