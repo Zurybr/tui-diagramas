@@ -97,13 +97,14 @@ Footer {
 
 /* Botones grandes para touch */
 .touch-button {
-    min-width: 8;
-    height: 3;
+    min-width: 12;
+    height: 4;
     background: $primary;
     color: $text;
     text-style: bold;
     content-align: center middle;
-    margin: 0 1;
+    margin: 0 2;
+    border-radius: 4;
 }
 
 .touch-button:hover {
@@ -112,6 +113,7 @@ Footer {
 
 .touch-button:focus {
     background: $primary-lighten-2;
+    outline: thick $accent;
 }
 
 /* === VISUALIZADOR DE MARKDOWN === */
@@ -250,17 +252,23 @@ Footer {
 }
 
 .zoom-button {
-    min-width: 6;
-    height: 3;
+    min-width: 10;
+    height: 4;
     background: $accent;
     color: $text;
     text-style: bold;
     content-align: center middle;
-    margin: 0 1;
+    margin: 0 2;
+    border-radius: 4;
 }
 
 .zoom-button:hover {
     background: $accent-lighten-1;
+}
+
+.zoom-button:focus {
+    background: $accent-lighten-2;
+    outline: thick $primary;
 }
 
 .zoom-level {
@@ -368,5 +376,14 @@ Scrollbar > .scrollbar--thumb:hover {
 
 .status-warning {
     color: $warning;
+    text-style: bold;
+}
+
+/* === TOOLTIPS === */
+Tooltip {
+    background: $surface-darken-1;
+    color: $text;
+    padding: 1 2;
+    border: solid $primary;
     text-style: bold;
 }

@@ -89,12 +89,12 @@ class DiagramViewerScreen(Screen):
                 yield Static(id="diagram-content")
 
             with Horizontal(id="diagram-controls"):
-                yield Button("➖ Zoom", id="zoom-out", classes="zoom-button")
+                yield Button("➖", id="zoom-out", classes="zoom-button", tooltip="Reducir zoom")
                 yield Label("100%", id="zoom-label", classes="zoom-level")
-                yield Button("➕ Zoom", id="zoom-in", classes="zoom-button")
-                yield Button("📄 Código", id="btn-code", classes="touch-button")
-                yield Button("🔄 Regen", id="btn-refresh", classes="touch-button")
-                yield Button("↩️ Volver", id="btn-back", classes="touch-button")
+                yield Button("➕", id="zoom-in", classes="zoom-button", tooltip="Aumentar zoom")
+                yield Button("📄 Código", id="btn-code", classes="touch-button", tooltip="Ver código fuente del diagrama")
+                yield Button("🔄 Regen", id="btn-refresh", classes="touch-button", tooltip="Regenerar diagrama")
+                yield Button("↩️ Volver", id="btn-back", classes="touch-button", tooltip="Volver al visor de markdown")
 
         yield Footer()
 
@@ -298,11 +298,11 @@ class MarkdownViewerScreen(Screen):
                 yield Static(id="markdown-content")
 
             with Horizontal(id="viewer-toolbar"):
-                yield Button("📁 Archivos", id="btn-files", classes="touch-button")
-                yield Button("⬆️ Subir", id="btn-up", classes="touch-button")
-                yield Button("⬇️ Bajar", id="btn-down", classes="touch-button")
-                yield Button("🔍+", id="btn-zoom-in", classes="touch-button")
-                yield Button("🔍-", id="btn-zoom-out", classes="touch-button")
+                yield Button("📁 Archivos", id="btn-files", classes="touch-button", tooltip="Volver al explorador de archivos")
+                yield Button("⬆️ Subir", id="btn-up", classes="touch-button", tooltip="Desplazar hacia arriba")
+                yield Button("⬇️ Bajar", id="btn-down", classes="touch-button", tooltip="Desplazar hacia abajo")
+                yield Button("🔍+", id="btn-zoom-in", classes="touch-button", tooltip="Aumentar zoom del contenido")
+                yield Button("🔍-", id="btn-zoom-out", classes="touch-button", tooltip="Reducir zoom del contenido")
 
         yield Footer()
 
@@ -471,10 +471,10 @@ class FileBrowserScreen(Screen):
             yield Label(str(self.current_path), id="browser-header")
 
             with Horizontal(id="browser-toolbar"):
-                yield Button("⬆️ Subir", id="btn-parent", classes="touch-button")
-                yield Button("🏠 Home", id="btn-home", classes="touch-button")
-                yield Button("🔄 Refrescar", id="btn-refresh", classes="touch-button")
-                yield Button("❓ Ayuda", id="btn-help", classes="touch-button")
+                yield Button("⬆️ Subir", id="btn-parent", classes="touch-button", tooltip="Ir al directorio padre")
+                yield Button("🏠 Home", id="btn-home", classes="touch-button", tooltip="Ir al directorio home")
+                yield Button("🔄 Refrescar", id="btn-refresh", classes="touch-button", tooltip="Actualizar lista de archivos")
+                yield Button("❓ Ayuda", id="btn-help", classes="touch-button", tooltip="Mostrar ayuda y atajos")
 
             table = DataTable(id="file-list", cursor_type="row")
             table.add_columns("", "Nombre", "Tamaño")
@@ -742,7 +742,7 @@ class HelpScreen(Screen):
                 yield Label("  • La interfaz se adapta a pantallas pequeñas")
 
             yield Label("")
-            yield Button("↩️ Volver", id="btn-back", classes="touch-button")
+            yield Button("↩️ Volver", id="btn-back", classes="touch-button", tooltip="Volver a la pantalla anterior")
 
         yield Footer()
 
