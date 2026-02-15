@@ -40,10 +40,10 @@ class ConfirmDialog(ModalScreen[bool]):
 
     def compose(self) -> ComposeResult:
         with Container(id="confirm-dialog"):
-            yield Label(self.message, id="dialog-message")
+            yield Label("⚠️ " + self.message, id="dialog-message")
             with Horizontal(id="dialog-buttons"):
-                yield Button("Sí", variant="success", id="btn-yes")
-                yield Button("No", variant="error", id="btn-no")
+                yield Button("✓ Sí", variant="success", id="btn-yes")
+                yield Button("✗ No", variant="error", id="btn-no")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == "btn-yes")
@@ -114,7 +114,13 @@ class DiagramViewerScreen(Screen):
     def watch_ascii_render(self, render: str) -> None:
         if not self.is_mounted:
             return
-        self.update_display()
+
+        if not render:
+            # Mostrar spinner de carga mientras se renderiza
+            content = self.query_one("#diagram-content", Static)
+            content.update("[dim]⏳ Cargando diagrama...[/]")
+        else:
+            self.update_display()
 
     def update_display(self) -> None:
         """Actualiza la visualización con el zoom actual."""
@@ -351,8 +357,8 @@ class MarkdownViewerScreen(Screen):
             # Mostrar notificación si hay diagramas
             if self.current_diagrams:
                 self.notify(
-                    f"📊 {len(self.current_diagrams)} diagrama(s) detectado(s). "
-                    "Toca el placeholder y luego 'v' para ver.",
+                    f"🎨 {len(self.current_diagrams)} diagrama(s) detectado(s). "
+                    "Presiona 'v' para visualizar.",
                     timeout=4
                 )
 
@@ -384,7 +390,7 @@ class MarkdownViewerScreen(Screen):
     def action_view_diagram(self) -> None:
         """Abre el visualizador de diagramas para el diagrama seleccionado."""
         if not self.current_diagrams:
-            self.notify("No hay diagramas en este archivo", severity="warning")
+            self.notify("📭 No hay diagramas en este archivo", severity="warning")
             return
 
         # Si hay múltiples diagramas, abrir el primero o implementar selección
@@ -631,7 +637,7 @@ class FileBrowserScreen(Screen):
             )
             self.app.push_screen(ConfirmDialog(info))
         except Exception as e:
-            self.notify(f"Error: {str(e)}", severity="error")
+            self.notify(f"❌ Error: {str(e)}", severity="error")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id
