@@ -671,7 +671,7 @@ class FileBrowserScreen(Screen):
 
 
 class HelpScreen(Screen):
-    """Pantalla de ayuda."""
+    """Pantalla de ayuda con atajos visuales."""
 
     BINDINGS = [
         ("escape", "back", "Volver"),
@@ -684,6 +684,7 @@ class HelpScreen(Screen):
         with ScrollableContainer(id="help-screen"):
             yield Label("\n[bold underline]📘 MD TUI - Guía de Uso[/]\n", classes="help-title")
 
+            # Sección de navegación táctil
             with Vertical(classes="help-section"):
                 yield Label("[bold]🎯 Navegación Táctil:[/]")
                 yield Label("  • Toca un archivo/carpeta para seleccionar")
@@ -693,34 +694,44 @@ class HelpScreen(Screen):
 
             yield Label("")
 
+            # Tabla de atajos del explorador
             with Vertical(classes="help-section"):
                 yield Label("[bold]⌨️ Atajos de Teclado - Explorador:[/]")
-                yield Label("  [cyan]↑/↓[/]      - Navegar arriba/abajo")
-                yield Label("  [cyan]Enter[/]    - Abrir selección")
-                yield Label("  [cyan]Backspace[/] - Subir directorio")
-                yield Label("  [cyan]q[/]        - Salir")
-                yield Label("  [cyan]h/?[/]      - Esta ayuda")
-                yield Label("  [cyan]r[/]        - Refrescar")
+                table = DataTable(id="shortcuts-explorer")
+                table.add_columns("Tecla", "Acción")
+                table.add_row("↑/↓", "Navegar archivos")
+                table.add_row("Enter", "Abrir selección")
+                table.add_row("Backspace", "Directorio padre")
+                table.add_row("q", "Salir")
+                table.add_row("h / ?", "Esta ayuda")
+                table.add_row("r", "Refrescar lista")
+                yield table
 
             yield Label("")
 
+            # Tabla de atajos del visor markdown
             with Vertical(classes="help-section"):
                 yield Label("[bold]📖 Controles - Visor Markdown:[/]")
-                yield Label("  [cyan]↑/↓[/] o [cyan]PgUp/PgDn[/] - Scroll arriba/abajo")
-                yield Label("  [cyan]v[/]          - Ver diagrama (cuando hay placeholder)")
-                yield Label("  [cyan]q[/]          - Volver al explorador")
-                yield Label("  Botones: [⬆️ Subir] [⬇️ Bajar] para scroll táctil")
+                table_md = DataTable(id="shortcuts-markdown")
+                table_md.add_columns("Tecla", "Acción")
+                table_md.add_row("↑/↓ o PgUp/PgDn", "Scroll arriba/abajo")
+                table_md.add_row("v", "Ver diagrama (si hay)")
+                table_md.add_row("q", "Volver al explorador")
+                yield table_md
 
             yield Label("")
 
+            # Tabla de atajos del visor de diagramas
             with Vertical(classes="help-section"):
                 yield Label("[bold]📊 Controles - Visor de Diagramas:[/]")
-                yield Label("  [cyan]+/-[/]        - Zoom in/out")
-                yield Label("  [cyan]↑/↓[/]          - Scroll del diagrama")
-                yield Label("  [cyan]c[/]            - Ver código fuente")
-                yield Label("  [cyan]r[/]            - Refrescar/renderizar de nuevo")
-                yield Label("  [cyan]q/Esc[/]        - Volver")
-                yield Label("  Botones: [➕ Zoom] [➖ Zoom] para zoom táctil")
+                table_diag = DataTable(id="shortcuts-diagram")
+                table_diag.add_columns("Tecla", "Acción")
+                table_diag.add_row("+ / -", "Zoom in/out")
+                table_diag.add_row("↑/↓", "Scroll del diagrama")
+                table_diag.add_row("c", "Ver código fuente")
+                table_diag.add_row("r", "Refrescar/renderizar")
+                table_diag.add_row("q / Esc", "Volver")
+                yield table_diag
 
             yield Label("")
 
@@ -754,6 +765,67 @@ class HelpScreen(Screen):
         self.app.pop_screen()
 
 
+class WelcomeScreen(Screen):
+    """Pantalla de bienvenida para nuevos usuarios."""
+
+    BINDINGS = [
+        ("escape", "dismiss", "Continuar"),
+        ("enter", "dismiss", "Continuar"),
+        ("q", "dismiss", "Continuar"),
+    ]
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.welcome_content = ""
+
+    def on_mount(self) -> None:
+        """Carga el contenido de bienvenida."""
+        welcome_path = Path(__file__).parent / "docs" / "welcome.md"
+        try:
+            if welcome_path.exists():
+                with open(welcome_path, 'r', encoding='utf-8') as f:
+                    self.welcome_content = f.read()
+        except Exception:
+            self.welcome_content = "# Welcome to MD TUI\n\nMarkdown viewer with diagram support."
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+
+        with Vertical(id="welcome-container"):
+            # Banner de bienvenida
+            yield Label(
+                "\n[bold cyan]╔════════════════════════════════════════╗[/]\n"
+                "[bold cyan]║[/]       [bold white]📝 MD TUI - Welcome![/]        [bold cyan]║[/]\n"
+                "[bold cyan]║[/]    [dim]Markdown Viewer con Diagramas[/]   [bold cyan]║[/]\n"
+                "[bold cyan]╚════════════════════════════════════════╝[/]\n",
+                id="welcome-banner"
+            )
+
+            with ScrollableContainer(id="welcome-content"):
+                # Usar RichMarkdown para renderizar el contenido
+                yield Static(RichMarkdown(self.welcome_content), id="welcome-md")
+
+            # Instrucciones
+            yield Label(
+                "\n[bold green]Presiona Enter o Esc para continuar...[/]",
+                id="welcome-hint"
+            )
+
+        yield Footer()
+
+    def action_dismiss(self) -> None:
+        """Cierra la pantalla de bienvenida y muestra el explorador."""
+        # Obtener referencia al app para determinar siguiente pantalla
+        app = self.app
+        app.pop_screen()
+
+        # Determinar qué pantalla mostrar después
+        if hasattr(app, 'initial_file') and app.initial_file:
+            app.push_screen(MarkdownViewerScreen(app.initial_file))
+        else:
+            app.push_screen(FileBrowserScreen())
+
+
 class MDTUI(App):
     """Aplicación principal."""
 
@@ -768,6 +840,11 @@ class MDTUI(App):
         super().__init__(*args, **kwargs)
 
     def on_mount(self) -> None:
+        # Mostrar pantalla de bienvenida al inicio
+        self.push_screen(WelcomeScreen())
+
+    def on_welcome_screen_dismissed(self) -> None:
+        """Callback cuando se cierra la pantalla de bienvenida."""
         if self.initial_file:
             self.push_screen(MarkdownViewerScreen(self.initial_file))
         else:
