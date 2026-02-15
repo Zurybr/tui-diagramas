@@ -1,0 +1,370 @@
+/* MD TUI - Estilos optimizados para móvil/Termux */
+
+/* Screen principal */
+Screen {
+    layout: vertical;
+    background: $surface-darken-1;
+}
+
+/* Header */
+Header {
+    dock: top;
+    height: 3;
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+/* Footer con ayuda */
+Footer {
+    dock: bottom;
+    height: 1;
+    background: $surface;
+}
+
+/* Contenedor principal */
+#main-container {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+}
+
+/* === EXPLORADOR DE ARCHIVOS === */
+
+#file-browser {
+    width: 100%;
+    height: 100%;
+    border: solid $primary;
+    background: $surface;
+}
+
+#file-list {
+    width: 100%;
+    height: 1fr;
+    border: none;
+    background: $surface;
+    padding: 0 1;
+}
+
+#file-list > .datatable--header {
+    text-style: bold;
+    background: $primary-darken-2;
+    color: $text;
+}
+
+#file-list > .datatable--row {
+    height: 3;
+}
+
+#file-list > .datatable--row-cursor {
+    background: $primary-darken-1;
+    text-style: bold;
+}
+
+#file-list > .datatable--row-hover {
+    background: $primary-darken-2;
+}
+
+.folder-icon {
+    color: $warning;
+    text-style: bold;
+}
+
+.file-icon {
+    color: $success;
+}
+
+.markdown-icon {
+    color: $accent;
+    text-style: bold;
+}
+
+/* Barra de navegación del explorador */
+#browser-header {
+    height: 3;
+    background: $primary-darken-2;
+    color: $text;
+    content-align: center middle;
+    text-style: bold;
+}
+
+#browser-toolbar {
+    height: auto;
+    layout: horizontal;
+    background: $surface-darken-1;
+    padding: 0 1;
+}
+
+/* Botones grandes para touch */
+.touch-button {
+    min-width: 8;
+    height: 3;
+    background: $primary;
+    color: $text;
+    text-style: bold;
+    content-align: center middle;
+    margin: 0 1;
+}
+
+.touch-button:hover {
+    background: $primary-lighten-1;
+}
+
+.touch-button:focus {
+    background: $primary-lighten-2;
+}
+
+/* === VISUALIZADOR DE MARKDOWN === */
+
+#markdown-viewer {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+    background: $surface;
+}
+
+#markdown-scroll {
+    width: 100%;
+    height: 1fr;
+    border: solid $primary-darken-2;
+    background: $surface;
+}
+
+#markdown-content {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+}
+
+#viewer-toolbar {
+    dock: bottom;
+    height: 5;
+    layout: horizontal;
+    background: $surface-darken-1;
+    padding: 1;
+}
+
+/* Contenido Markdown estilizado */
+.markdown-heading {
+    text-style: bold;
+    color: $primary;
+    margin: 1 0;
+}
+
+.markdown-h1 {
+    text-style: bold underline;
+    color: $primary;
+}
+
+.markdown-h2 {
+    text-style: bold;
+    color: $primary-lighten-1;
+}
+
+.markdown-h3 {
+    text-style: bold;
+    color: $primary-lighten-2;
+}
+
+.markdown-code {
+    background: $surface-darken-2;
+    color: $text-accent;
+    padding: 0 1;
+}
+
+.markdown-code-block {
+    background: $surface-darken-2;
+    border-left: solid $accent;
+    padding: 1;
+    margin: 1 0;
+}
+
+.markdown-blockquote {
+    border-left: solid $warning;
+    background: $warning-darken-3;
+    padding: 0 1;
+    color: $text-muted;
+}
+
+.markdown-list {
+    margin: 0;
+    padding-left: 2;
+}
+
+.markdown-link {
+    color: $accent;
+    text-style: underline;
+}
+
+.markdown-emphasis {
+    text-style: italic;
+}
+
+.markdown-strong {
+    text-style: bold;
+}
+
+/* Toolbar del visor de markdown */
+#viewer-toolbar {
+    dock: bottom;
+    height: auto;
+    layout: horizontal;
+    background: $surface-darken-1;
+    padding: 1;
+}
+
+#viewer-toolbar .touch-button {
+    min-width: 8;
+    height: 3;
+    margin: 0 1;
+}
+
+/* === VISOR DE DIAGRAMAS === */
+
+#diagram-viewer {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+    background: $surface;
+}
+
+#diagram-scroll {
+    width: 100%;
+    height: 1fr;
+    border: solid $accent;
+    background: $surface;
+}
+
+#diagram-content {
+    width: 100%;
+    height: auto;
+    padding: 1;
+}
+
+#diagram-controls {
+    dock: bottom;
+    height: 5;
+    layout: horizontal;
+    background: $surface-darken-1;
+    padding: 1;
+}
+
+.zoom-button {
+    min-width: 6;
+    height: 3;
+    background: $accent;
+    color: $text;
+    text-style: bold;
+    content-align: center middle;
+    margin: 0 1;
+}
+
+.zoom-button:hover {
+    background: $accent-lighten-1;
+}
+
+.zoom-level {
+    width: 10;
+    height: 3;
+    content-align: center middle;
+    text-style: bold;
+    color: $text;
+}
+
+/* === MODALES Y DIÁLOGOS === */
+
+ModalScreen {
+    align: center middle;
+    background: $surface-darken-2;
+}
+
+#confirm-dialog {
+    width: 80%;
+    height: auto;
+    border: thick $background 80%;
+    background: $surface;
+    padding: 1 2;
+}
+
+#dialog-message {
+    height: auto;
+    margin: 1 0;
+    text-align: center;
+}
+
+#dialog-buttons {
+    layout: horizontal;
+    height: auto;
+    margin-top: 1;
+}
+
+.dialog-button {
+    width: 1fr;
+    height: 3;
+    margin: 0 1;
+}
+
+/* === HELP SCREEN === */
+
+#help-screen {
+    width: 100%;
+    height: 100%;
+    background: $surface;
+    padding: 1 2;
+}
+
+.help-section {
+    margin: 1 0;
+    padding: 1;
+    border: solid $primary-darken-2;
+}
+
+.help-title {
+    text-style: bold underline;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+.help-key {
+    color: $accent;
+    text-style: bold;
+    width: 15;
+}
+
+.help-desc {
+    color: $text;
+}
+
+/* === SCROLLBARS === */
+Scrollbar {
+    background: $surface-darken-2;
+}
+
+Scrollbar > .scrollbar--thumb {
+    background: $primary-darken-1;
+}
+
+Scrollbar > .scrollbar--thumb:hover {
+    background: $primary;
+}
+
+/* Mensajes de estado */
+.status-info {
+    color: $text;
+    text-style: bold;
+}
+
+.status-success {
+    color: $success;
+    text-style: bold;
+}
+
+.status-error {
+    color: $error;
+    text-style: bold;
+}
+
+.status-warning {
+    color: $warning;
+    text-style: bold;
+}

@@ -1,0 +1,4 @@
+textual>=0.52.0
+rich>=13.0.0
+markdown>=3.5.0
+pymdown-extensions>=10.0
