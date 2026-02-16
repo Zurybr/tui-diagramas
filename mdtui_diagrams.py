@@ -392,10 +392,9 @@ class DiagramRenderer:
         d2_path.write_text(diagram.code)
 
         try:
-            # Renderizar con D2 en modo ASCII
+            # Renderizar con D2 en modo texto (extensión .txt indica formato ASCII)
             proc = await asyncio.create_subprocess_exec(
                 'd2', str(d2_path), str(output_path),
-                '--format', 'txt',  # ASCII output
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -433,176 +432,499 @@ class DiagramRenderer:
 
     def _convert_mermaid_to_d2(self, mermaid_code: str) -> str:
         """Convierte código Mermaid básico a D2."""
+        import re
+
         lines = mermaid_code.split('\n')
-        d2_lines = []
+        d2_nodes = {}  # id -> label
+        d2_edges = []
+        d2_styles = []
 
         # Detectar tipo
         is_sequence = any('sequenceDiagram' in line for line in lines)
         is_flowchart = any('flowchart' in line or 'graph' in line for line in lines)
+        is_class = any('classDiagram' in line for line in lines)
+
+        # Helper to extract node ID and label from Mermaid syntax
+        def parse_node(s):
+            # A[Label] -> returns (A, Label)
+            m = re.match(r'(\w+)\[([^\]]+)\]', s)
+            if m:
+                return m.group(1), m.group(2)
+            # A{Label} -> returns (A, Label)
+            m = re.match(r'(\w)\{([^}]+)\}', s)
+            if m:
+                return m.group(1), m.group(2)
+            # A("Label") -> returns (A, Label)
+            m = re.match(r'(\w+)\(([^)]+)\)', s)
+            if m:
+                return m.group(1), m.group(2)
+            # Just A -> returns (A, A)
+            return s.strip(), s.strip()
 
         if is_sequence:
             # Conversión de secuencia
-            participants = []
-            messages = []
-
             for line in lines:
                 line = line.strip()
                 if not line or line.startswith('sequence'):
                     continue
 
-                if '->>' in line:
-                    # Mensaje
-                    parts = line.split('->>')
-                    if len(parts) == 2:
-                        from_p = parts[0].strip()
-                        rest = parts[1].strip()
-                        if ':' in rest:
-                            to_p, msg = rest.split(':', 1)
-                            messages.append((from_p.strip(), to_p.strip(), msg.strip()))
+                # participant declarations
+                if line.startswith('participant '):
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        p = parts[1]
+                        d2_nodes[p] = p
 
-            # Crear estructura D2
-            for from_p, to_p, msg in messages:
-                d2_lines.append(f"{from_p} -> {to_p}: {msg}")
+                # messages: A->>B: message
+                for arrow in ['-->>', '->>', '-->', '->', '--', '-']:
+                    if arrow in line:
+                        parts = line.split(arrow)
+                        if len(parts) == 2:
+                            from_p = parts[0].strip()
+                            rest = parts[1].strip()
+                            to_p = rest
+                            msg = ""
+                            if ':' in rest:
+                                to_p, msg = rest.split(':', 1)
+                                msg = msg.strip()
+                            to_p = to_p.strip()
+                            # Clean node IDs
+                            from_id, _ = parse_node(from_p)
+                            to_id, _ = parse_node(to_p)
+                            # Ensure nodes exist
+                            if from_id not in d2_nodes:
+                                d2_nodes[from_id] = from_id
+                            if to_id not in d2_nodes:
+                                d2_nodes[to_id] = to_id
+                            if msg:
+                                d2_edges.append(f"{from_id} -> {to_id}: {msg}")
+                            else:
+                                d2_edges.append(f"{from_id} -> {to_id}")
+                        break
 
         elif is_flowchart:
-            # Conversión de flowchart
+            # First pass: parse nodes
             for line in lines:
                 line = line.strip()
                 if not line or line.startswith(('flowchart', 'graph')):
                     continue
 
-                if '-->' in line:
-                    # Conexión
-                    parts = line.split('-->')
-                    if len(parts) == 2:
-                        from_n = parts[0].strip()
-                        to_n = parts[1].strip().split('[', 1)[0].strip()
-                        d2_lines.append(f"{from_n} -> {to_n}")
-                elif '[' in line and ']' in line:
-                    # Nodo con label
-                    node_id = line.split('[')[0].strip()
-                    label = line.split('[')[1].split(']')[0]
-                    d2_lines.append(f"{node_id}: {label}")
+                # Skip arrows for now
+                if '-->' in line or '->' in line:
+                    continue
 
-        if not d2_lines:
-            # Fallback: tratar cada línea como una conexión simple
+                # Parse node definitions
+                node_id, label = parse_node(line)
+                if node_id:
+                    d2_nodes[node_id] = label
+                    # Add shape style for diamonds
+                    if '{' in line:
+                        d2_styles.append(f"{node_id}.shape: diamond")
+                    elif '(' in line:
+                        d2_styles.append(f"{node_id}.shape: rectangle")
+
+            # Second pass: parse arrows
             for line in lines:
                 line = line.strip()
-                if line and not line.startswith(('```', 'flowchart', 'graph', 'sequence')):
-                    d2_lines.append(line)
+                if not line or line.startswith(('flowchart', 'graph')):
+                    continue
 
-        return '\n'.join(d2_lines) if d2_lines else mermaid_code
+                # Parse arrows: A --> B, A -->|label| B
+                for arrow in ['-->', '->']:
+                    if arrow in line:
+                        parts = line.split(arrow)
+                        if len(parts) == 2:
+                            from_part = parts[0].strip()
+                            to_part = parts[1].strip()
+
+                            # Parse source node
+                            from_id, _ = parse_node(from_part)
+
+                            # Parse destination - may have |label|
+                            label = ""
+                            to_clean = to_part
+                            if '|' in to_clean:
+                                # Format: |label| dest or dest|label|
+                                # Mermaid: A -->|label| B
+                                m = re.match(r'\|([^|]+)\|\s*(\w+)', to_clean)
+                                if m:
+                                    label = m.group(1)
+                                    to_clean = m.group(2)
+                                else:
+                                    # Try another pattern
+                                    parts_pipe = to_clean.split('|')
+                                    if len(parts_pipe) >= 3:
+                                        label = parts_pipe[1]
+                                        to_clean = parts_pipe[2]
+
+                            to_id, _ = parse_node(to_clean)
+
+                            if not from_id or not to_id:
+                                continue
+
+                            # Ensure nodes exist
+                            if from_id not in d2_nodes:
+                                d2_nodes[from_id] = from_id
+                            if to_id not in d2_nodes:
+                                d2_nodes[to_id] = to_id
+
+                            if label:
+                                d2_edges.append(f"{from_id} -> {to_id}: {label}")
+                            else:
+                                d2_edges.append(f"{from_id} -> {to_id}")
+                        break
+
+        elif is_class:
+            # Conversión de class diagram
+            current_class = None
+            class_attrs = {}
+
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith('classDiagram'):
+                    continue
+
+                # Class definition: class ClassName {
+                if line.startswith('class ') and '{' in line:
+                    class_name = line.split()[1].split('{')[0].strip()
+                    current_class = class_name
+                    d2_nodes[class_name] = class_name
+                    class_attrs[class_name] = []
+                # Class definition without brace on same line
+                elif line.startswith('class ') and '{' not in line:
+                    class_name = line.split()[1].strip()
+                    current_class = class_name
+                    d2_nodes[class_name] = class_name
+                    class_attrs[class_class] = []
+                # Attributes and methods inside class
+                elif current_class and line.startswith(('+', '-', '#')):
+                    member = line[1:].strip()
+                    class_attrs.setdefault(current_class, []).append(member)
+                # Inheritance: Child <|-- Parent (Mermaid: Dog <|-- Animal means Dog extends Animal)
+                elif '<|--' in line:
+                    parts = line.split('<|--')
+                    if len(parts) == 2:
+                        child = parts[0].strip()
+                        parent = parts[1].strip()
+                        d2_edges.append(f"{child} -> {parent}: extends")
+                        d2_nodes[parent] = parent
+                        d2_nodes[child] = child
+
+        # Build D2 output
+        output = []
+        for node_id, label in d2_nodes.items():
+            output.append(f"{node_id}: {label}")
+        output.append("")
+        for style in d2_styles:
+            output.append(style)
+        if d2_styles:
+            output.append("")
+        for edge in d2_edges:
+            output.append(edge)
+
+        return '\n'.join(output) if output else mermaid_code
 
     # ============ RENDERIZADO ASCII NATIVO (FALLBACK) ============
 
     def _render_sequence_ascii(self, code: str, width: int) -> str:
         """Renderiza diagrama de secuencia en ASCII."""
-        lines = []
         participants = []
         messages = []
+        activations = []
 
-        for line in code.split('\n'):
+        lines = code.split('\n')
+        for line in lines:
             line = line.strip()
             if not line or line.startswith('sequenceDiagram'):
                 continue
 
-            if line.startswith('participant'):
-                parts = line.split()
-                if len(parts) >= 2:
-                    participants.append(parts[1])
-            elif line.startswith('actor'):
-                parts = line.split()
-                if len(parts) >= 2:
-                    participants.append(parts[1])
-            elif '-->>' in line or '->>' in line or '-->' in line or '->' in line:
-                messages.append(line)
+            if line.startswith('participant '):
+                participants.append(line.split()[1])
+            elif line.startswith('actor '):
+                participants.append(line.split()[1])
+            elif '-->' in line or '->>' in line or '-->' in line or '->' in line:
+                # Parsear mensaje completo
+                for arrow in ['-->>', '->>', '-->', '->']:
+                    if arrow in line:
+                        parts = line.split(arrow)
+                        if len(parts) == 2:
+                            from_p = parts[0].strip()
+                            rest = parts[1].strip()
+                            if ':' in rest:
+                                to_p, msg = rest.split(':', 1)
+                                messages.append((from_p.strip(), to_p.strip(), msg.strip(), arrow))
+                            else:
+                                messages.append((from_p.strip(), rest.strip(), '', arrow))
+                        break
 
+        # Extraer participantes de mensajes si no hay participantes definidos
         if not participants:
-            for msg in messages:
-                parts = msg.split('-')[0].strip()
-                if parts and parts not in participants:
-                    participants.append(parts)
+            for from_p, to_p, _, _ in messages:
+                if from_p not in participants:
+                    participants.append(from_p)
+                if to_p not in participants:
+                    participants.append(to_p)
 
         if not participants:
             return self._format_code_block(code, "mermaid")
 
-        # Generar ASCII
-        result = ["┌" + "─" * (width - 2) + "┐"]
-        result.append("│" + " Diagrama de Secuencia ".center(width - 2) + "│")
+        # Calcular ancho
+        max_name_len = max(len(p) for p in participants) if participants else 8
+        col_width = max(max_name_len + 2, 12)
+        num_cols = min(len(participants), (width - 10) // col_width)
+
+        # Header
+        result = []
+        result.append("┌" + "─" * (width - 2) + "┐")
+        result.append("│" + " SECUENCE DIAGRAM ".center(width - 2) + "│")
         result.append("├" + "─" * (width - 2) + "┤")
 
+        # Línea de participantes
         header = "│"
-        spacing = (width - 2) // max(len(participants), 1)
-        for p in participants[:4]:
-            header += p[:spacing-2].center(spacing)
+        for p in participants[:num_cols]:
+            header += p[:col_width-2].center(col_width-1)
         result.append(header + "│")
-        result.append("├" + "─" * (width - 2) + "┤")
+        result.append("│" + "│".join("─" * (col_width-1) for _ in range(num_cols)) + "│")
 
-        for msg in messages[:10]:
-            arrow = "->>" if '->>' in msg else "->"
-            parts = msg.split(arrow)
-            if len(parts) == 2:
-                from_p = parts[0].strip()[:10]
-                to_part = parts[1].strip()
-                to_p = to_part.split(':')[0].strip()[:10]
-                result.append(f"│ {from_p} {arrow} {to_p}".ljust(width - 1) + "│")
+        # Mensajes
+        for from_p, to_p, msg, arrow in messages[:15]:
+            from_idx = participants.index(from_p) if from_p in participants else 0
+            to_idx = participants.index(to_p) if to_p in participants else 0
+
+            if from_idx == to_idx:
+                # Mensaje a sí mismo
+                line = "│"
+                for i in range(num_cols):
+                    if i == from_idx:
+                        line += " ┌─ " + msg[:col_width-6] if msg else " │ "
+                    else:
+                        line += " " * (col_width-1)
+                result.append(line + "│")
+            elif to_idx > from_idx:
+                # Mensaje hacia la derecha
+                line = "│"
+                for i in range(num_cols):
+                    if i == from_idx:
+                        line += " " * (col_width-1)
+                    elif i == to_idx:
+                        arrow_str = "──" + arrow.replace(">", "▶").replace("-", "─") + "▶ " + msg[:col_width-6] if msg else "──>"
+                        line += arrow_str.ljust(col_width-1)
+                    else:
+                        line += " " * (col_width-1)
+                result.append(line + "│")
+            else:
+                # Mensaje hacia la izquierda
+                line = "│"
+                for i in range(num_cols):
+                    if i == to_idx:
+                        arrow_str = "◀──" + arrow.replace(">", "▼").replace("-", "─") + " " + msg[:col_width-6] if msg else "<──"
+                        line += arrow_str.rjust(col_width-1)
+                    elif i == from_idx:
+                        line += " " * (col_width-1)
+                    else:
+                        line += " " * (col_width-1)
+                result.append(line + "│")
 
         result.append("└" + "─" * (width - 2) + "┘")
         return '\n'.join(result)
 
     def _render_flowchart_ascii(self, code: str, width: int) -> str:
-        """Renderiza flowchart en ASCII simplificado."""
-        nodes = []
-        edges = []
+        """Renderiza flowchart en ASCII con nodos y conexiones."""
+        nodes = {}  # id -> (label, shape)
+        edges = []  # (from, to, label)
 
-        for line in code.split('\n'):
+        lines = code.split('\n')
+        direction = 'TB'
+
+        for line in lines:
             line = line.strip()
-            if not line or line.startswith(('flowchart', 'graph')):
+            if not line:
                 continue
 
-            if '-->' in line:
-                edges.append(line)
-            elif '[' in line and ']' in line:
-                node_id = line.split('[')[0].strip()
-                node_text = line.split('[')[1].split(']')[0]
-                nodes.append((node_id, node_text))
+            if line.startswith('flowchart') or line.startswith('graph'):
+                if 'LR' in line or 'RL' in line:
+                    direction = 'LR'
+                continue
+
+            # Extraer nodos de la línea primero
+            # A[Label] -> node_id: A, label: Label
+            import re
+            # Match nodos: A[Label], A("Label"), A{Label}
+            node_pattern = r'(\w+)\[([^\]]+)\]'
+            for match in re.finditer(node_pattern, line):
+                nid = match.group(1)
+                label = match.group(2)
+                nodes[nid] = (label, 'rect')
+
+            node_pattern = r'(\w+)\(([^)]+)\)'
+            for match in re.finditer(node_pattern, line):
+                nid = match.group(1)
+                label = match.group(2)
+                nodes[nid] = (label, 'round')
+
+            node_pattern = r'(\w)\{([^}]+)\}'
+            for match in re.finditer(node_pattern, line):
+                nid = match.group(1)
+                label = match.group(2)
+                nodes[nid] = (label, 'diamond')
+
+            # Ahora parsear conexiones
+            for arrow in ['-->', '->', '-->>', '->>']:
+                if arrow in line:
+                    parts = line.split(arrow)
+                    if len(parts) == 2:
+                        from_node = parts[0].strip()
+                        # Limpiar el nodo emisor (quitar labels)
+                        from_node = re.sub(r'\[.*?\]|\(.*?\)|\{.*?\}', '', from_node).strip()
+
+                        to_part = parts[1].strip()
+                        label = ''
+                        if '|' in to_part:
+                            to_part, label = to_part.split('|', 1)
+                            label = label.strip()
+                        to_node = re.sub(r'\[.*?\]|\(.*?\)|\{.*?\}', '', to_part).strip()
+
+                        if from_node and to_node:
+                            edges.append((from_node, to_node, label))
+                    break
 
         if not nodes:
             return self._format_code_block(code, "mermaid")
 
-        result = ["┌" + "─" * (width - 2) + "┐"]
-        result.append("│" + " Flowchart ".center(width - 2) + "│")
+        # Calcular niveles (simplificado)
+        node_levels = {}
+        level = 0
+        for from_n, to_n, _ in edges:
+            if from_n not in node_levels:
+                node_levels[from_n] = level
+            if to_n not in node_levels:
+                node_levels[to_n] = level + 1
+
+        for node in nodes:
+            if node not in node_levels:
+                node_levels[node] = level
+
+        # Renderizar
+        result = []
+        result.append("┌" + "─" * (width - 2) + "┐")
+        result.append("│" + " FLOWCHART ".center(width - 2) + "│")
         result.append("├" + "─" * (width - 2) + "┤")
 
-        for node_id, node_text in nodes[:15]:
-            display = f"┌─────┐ {node_text[:30]}"
-            result.append("│ " + display.ljust(width - 3) + "│")
+        # Renderizar nodos
+        max_level = max(node_levels.values()) if node_levels else 0
+
+        for lvl in range(max_level + 1):
+            level_nodes = [(nid, nodes[nid]) for nid, lvl_ in node_levels.items() if lvl_ == lvl]
+            if not level_nodes:
+                continue
+
+            # Renderizar nodos en esta línea
+            line = "│ "
+            for nid, (label, shape) in level_nodes[:4]:
+                if shape == 'rect':
+                    box = f"┌{label[:10].center(10)}┐"
+                elif shape == 'round':
+                    box = f"({label[:10].center(10)})"
+                elif shape == 'diamond':
+                    box = f"◇{label[:8].center(8)}◇"
+                else:
+                    box = f"○ {label[:8]} ○"
+                line += box + "  "
+            result.append(line.ljust(width - 1) + "│")
+
+            # Renderizar flechas de conexión
+            if lvl < max_level:
+                arrow_line = "│ "
+                for nid, (label, shape) in level_nodes[:4]:
+                    arrow_line += "    │    "
+                result.append(arrow_line.ljust(width - 1) + "│")
+
+        # Mostrar relaciones
+        if edges:
+            result.append("├" + "─" * (width - 2) + "┤")
+            result.append("│ Conexiones:")
+            for from_n, to_n, label in edges[:8]:
+                label_str = f" ({label})" if label else ""
+                result.append(f"│   {from_n} ──→ {to_n}{label_str}".ljust(width - 1) + "│")
 
         result.append("└" + "─" * (width - 2) + "┘")
         return '\n'.join(result)
 
     def _render_class_ascii(self, code: str, width: int) -> str:
         """Renderiza diagrama de clases en ASCII."""
-        classes = []
+        classes = {}  # class_name -> {methods: [], attrs: [], relations: []}
+        current_class = None
 
-        for line in code.split('\n'):
+        lines = code.split('\n')
+        for line in lines:
             line = line.strip()
+
             if line.startswith('class '):
-                class_name = line.split()[1].split('{')[0].strip()
-                classes.append(class_name)
+                # Nueva clase
+                parts = line.split()
+                if len(parts) >= 2:
+                    class_name = parts[1].split('{')[0].strip()
+                    current_class = class_name
+                    classes[current_class] = {'methods': [], 'attrs': [], 'relations': []}
+            elif current_class and line.startswith('+'):
+                # Método o atributo
+                if '(' in line:
+                    classes[current_class]['methods'].append(line[1:])
+                else:
+                    classes[current_class]['attrs'].append(line[1:])
+            elif '-->' in line or '<--' in line or '-->' in line:
+                # Relación
+                for rel in ['<--', '-->', '<--', '-->']:
+                    if rel in line:
+                        parts = line.split(rel)
+                        if len(parts) == 2:
+                            from_c = parts[0].strip()
+                            to_c = parts[1].strip()
+                            classes[from_c]['relations'].append((to_c, rel))
+                        break
 
         if not classes:
             return self._format_code_block(code, "mermaid")
 
-        result = ["┌" + "─" * (width - 2) + "┐"]
-        result.append("│" + " Diagrama de Clases ".center(width - 2) + "│")
+        result = []
+        result.append("┌" + "─" * (width - 2) + "┐")
+        result.append("│" + " CLASS DIAGRAM ".center(width - 2) + "│")
         result.append("├" + "─" * (width - 2) + "┤")
 
-        for cls in classes[:8]:
-            box_width = min(len(cls) + 6, width - 6)
-            result.append("│ " + "┌" + "─" * box_width + "┐")
-            result.append("│ " + "│" + cls.center(box_width) + "│")
-            result.append("│ " + "└" + "─" * box_width + "┘")
+        # Renderizar cada clase
+        class_names = list(classes.keys())
+
+        for i, cls_name in enumerate(class_names[:6]):
+            cls_data = classes[cls_name]
+            box_width = min(len(cls_name) + 4, width - 10)
+
+            # Nombre de clase
+            result.append("│  ┌" + "─" * box_width + "┐")
+            result.append("│  │" + cls_name.center(box_width) + "│")
+            result.append("│  ├" + "─" * box_width + "┤")
+
+            # Atributos
+            for attr in cls_data['attrs'][:3]:
+                attr_text = f"+ {attr}"[:box_width]
+                result.append("│  │" + attr_text.ljust(box_width) + "│")
+
+            if cls_data['attrs'] and cls_data['methods']:
+                result.append("│  ├" + "─" * box_width + "┤")
+
+            # Métodos
+            for method in cls_data['methods'][:3]:
+                method_text = f"+ {method}"[:box_width]
+                result.append("│  │" + method_text.ljust(box_width) + "│")
+
+            result.append("│  └" + "─" * box_width + "┘")
+
+            # Mostrar relaciones
+            for to_class, rel in cls_data['relations'][:2]:
+                rel_arrow = "───▶" if "-->" in rel else "◀───"
+                result.append(f"│      {rel_arrow} {to_class}")
+
+            if i < len(class_names) - 1 and class_names[i+1] in [r[0] for cls in classes.values() for r in cls['relations']]:
+                result.append("│        │")
 
         result.append("└" + "─" * (width - 2) + "┘")
         return '\n'.join(result)

@@ -50,6 +50,55 @@ echo "📥 Instalando dependencias..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
+# ========== INSTALAR HERRAMIENTAS DE DIAGRAMAS ==========
+echo ""
+echo "🎨 Instalando renderizadores de diagramas..."
+
+# D2 - Instalar desde releases oficiales
+if ! command -v d2 &> /dev/null; then
+    echo "  📦 Instalando D2..."
+    D2_VERSION=$(curl -sL -A "Mozilla/5.0" "https://api.github.com/repos/terrastruct/d2/releases/latest" | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
+    if [ -n "$D2_VERSION" ]; then
+        TEMP_DIR=$(mktemp -d)
+        curl -sL -A "Mozilla/5.0" "https://github.com/terrastruct/d2/releases/download/v${D2_VERSION}/d2-v${D2_VERSION}-linux-amd64.tar.gz" -o "$TEMP_DIR/d2.tar.gz"
+        tar xzf "$TEMP_DIR/d2.tar.gz" -C "$TEMP_DIR"
+        mkdir -p "$HOME/.local/bin"
+        cp "$TEMP_DIR/d2-v${D2_VERSION}/bin/d2" "$HOME/.local/bin/d2"
+        chmod +x "$HOME/.local/bin/d2"
+        rm -rf "$TEMP_DIR"
+        echo "  ✅ D2 instalado"
+    else
+        echo "  ⚠️ D2 no se pudo instalar"
+    fi
+else
+    echo "  ✅ D2 ya instalado"
+fi
+
+# Diagon - Instalar desde PyPI
+if ! command -v diagon &> /dev/null; then
+    echo "  📦 Instalando Diagon..."
+    pip install diagon --break-system-packages 2>/dev/null || pip install diagon
+    if command -v diagon &> /dev/null; then
+        echo "  ✅ Diagon instalado"
+    else
+        echo "  ⚠️ Diagon no se pudo instalar"
+    fi
+else
+    echo "  ✅ Diagon ya instalado"
+fi
+
+# Mermaid CLI (opcional, requiere Node.js)
+if ! command -v mmdc &> /dev/null; then
+    if command -v npm &> /dev/null; then
+        echo "  📦 Instalando Mermaid CLI..."
+        npm install -g @mermaid-js/mermaid-cli 2>/dev/null || echo "  ⚠️ Error instalando mmdc"
+    else
+        echo "  ℹ️ Node.js no encontrado, omitiendo Mermaid CLI"
+    fi
+else
+    echo "  ✅ Mermaid CLI ya instalado"
+fi
+
 # Hacer ejecutable el script
 chmod +x mdtui.py
 

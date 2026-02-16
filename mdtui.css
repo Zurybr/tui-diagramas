@@ -104,7 +104,6 @@ Footer {
     text-style: bold;
     content-align: center middle;
     margin: 0 2;
-    border-radius: 4;
 }
 
 .touch-button:hover {
@@ -259,7 +258,6 @@ Footer {
     text-style: bold;
     content-align: center middle;
     margin: 0 2;
-    border-radius: 4;
 }
 
 .zoom-button:hover {
@@ -351,7 +349,6 @@ Scrollbar {
 
 Scrollbar > .scrollbar--thumb {
     background: $primary;
-    border-radius: 1;
 }
 
 Scrollbar > .scrollbar--thumb:hover {
