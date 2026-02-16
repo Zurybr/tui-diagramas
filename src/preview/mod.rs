@@ -164,8 +164,6 @@ impl PreviewManager {
         manager.register(Box::new(image::ImagePreview::new()));
         manager.register(Box::new(pdf::PdfPreview::new()));
         manager.register(Box::new(markdown::MarkdownPreview::new()));
-        // Proveedor genérico al final (fallback)
-        manager.register(Box::new(GenericPreview));
         manager
     }
 
@@ -174,11 +172,22 @@ impl PreviewManager {
     }
 
     pub fn get_preview(&self, path: &Path) -> Result<PreviewContent, String> {
+        // Primero intentar con todos los proveedores específicos
         for provider in &self.providers {
             if provider.can_preview(path) {
-                return provider.generate_preview(path);
+                match provider.generate_preview(path) {
+                    Ok(PreviewContent::Text(text)) if !text.is_empty() => return Ok(PreviewContent::Text(text)),
+                    Ok(PreviewContent::Text(_)) => {}, // Vacío, continuar
+                    Ok(other) => return Ok(other), // Binary, Image, Error
+                    Err(_) => {}, // Error, continuar
+                }
             }
         }
-        Err("No preview provider available".to_string())
+        // Si ninguno funcionó, usar el genérico como último recurso
+        // Intentar leer el archivo directamente
+        match fs::read_to_string(path) {
+            Ok(content) => Ok(PreviewContent::Text(content)),
+            Err(e) => Ok(PreviewContent::Binary(format!("Cannot read file: {}", e)))
+        }
     }
 }
