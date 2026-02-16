@@ -1,0 +1,28 @@
+[package]
+name = "mdtui"
+version = "0.1.0"
+edition = "2021"
+authors = ["Zurybr"]
+
+[dependencies]
+ratatui = "0.26"
+crossterm = "0.27"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "4"
+glob = "0.3"
+regex = "1"
+colored = "2"
+chrono = "0.4"
+which = "5"
+walkdir = "2"
+similar = "2"
+
+[profile.release]
+opt-level = 3
+lto = true
+
+[lib]
+name = "mdtui"
+path = "src/lib.rs"
