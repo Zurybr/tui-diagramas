@@ -1,0 +1,41 @@
+#!/bin/bash
+set -e
+
+echo "📦 MD TUI - Rust Installer"
+echo "=========================="
+
+# Install system dependencies
+echo "📥 Installing system dependencies..."
+sudo apt update
+sudo apt install -y \
+    build-essential \
+    git \
+    curl \
+    chafa \
+    exiftool \
+    poppler-utils \
+    fzf \
+    fd-find \
+    ripgrep
+
+# Install Rust if not present
+if ! command -v rustc &> /dev/null; then
+    echo "🧊 Installing Rust..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source "$HOME/.cargo/env"
+fi
+
+# Ensure Rust is in PATH
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Build the application
+echo "🔨 Building MD TUI..."
+cargo build --release
+
+# Install binary
+echo "📲 Installing mdtui binary..."
+sudo cp target/release/mdtui /usr/local/bin/mdtui
+sudo chmod +x /usr/local/bin/mdtui
+
+echo "✅ Installation complete!"
+echo "Run 'mdtui' to start"

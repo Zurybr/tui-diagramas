@@ -1,12 +1,12 @@
 // src/git/mod.rs
-use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 
 pub mod status;
 pub mod diff;
 
 pub struct GitManager {
-    path: Path,
+    path: PathBuf,
     is_repo: bool,
 }
 
@@ -29,7 +29,7 @@ pub enum StatusType {
 }
 
 impl GitManager {
-    pub fn new(path: Path) -> Self {
+    pub fn new(path: PathBuf) -> Self {
         let is_repo = Command::new("git")
             .args(["-C", path.to_str().unwrap_or("."), "rev-parse", "--is-inside-work-tree"])
             .output()

@@ -2,18 +2,10 @@
 use serde_json::Value;
 use regex::Regex;
 
-pub fn format_json(content: &str, indent: usize) -> Result<String, String> {
+pub fn format_json(content: &str, _indent: usize) -> Result<String, String> {
     let value: Value = serde_json::from_str(content)
         .map_err(|e| format!("Invalid JSON: {}", e))?;
-
-    let formatter = serde_json::ser::PrettyFormatter::with_indent(b" ".repeat(indent).as_bytes());
-    let mut buf = Vec::new();
-    let mut serializer = serde_json::Serializer::with_formatter(&mut buf, formatter);
-
-    value.serialize(&mut serializer)
-        .map_err(|e| format!("Serialization error: {}", e))?;
-
-    String::from_utf8(buf).map_err(|e| e.to_string())
+    serde_json::to_string_pretty(&value).map_err(|e| e.to_string())
 }
 
 pub fn minify_json(content: &str) -> Result<String, String> {
@@ -46,22 +38,22 @@ pub fn format_ldap(content: &str) -> String {
 
 pub fn format_ldap_filter(filter: &str) -> String {
     let mut formatted = String::new();
-    let mut indent = 0;
-    let mut in_parens = false;
+    let mut indent: i32 = 0;
+    let mut _in_parens = false;
 
     for ch in filter.chars() {
         match ch {
             '(' => {
                 formatted.push(ch);
-                in_parens = true;
+                _in_parens = true;
                 indent += 2;
             }
             ')' => {
                 indent = indent.saturating_sub(2);
                 formatted.push('\n');
-                formatted.push_str(&" ".repeat(indent));
+                formatted.push_str(&" ".repeat(indent as usize));
                 formatted.push(ch);
-                in_parens = false;
+                _in_parens = false;
             }
             '|' | '&' => {
                 formatted.push_str("\n  ");

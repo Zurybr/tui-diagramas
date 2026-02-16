@@ -2,10 +2,19 @@
 pub mod dir;
 pub mod file;
 
-use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
+pub use dir::DirNavigator;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+use std::path::PathBuf;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SortBy {
+    Name,
+    Size,
+    Modified,
+    Type,
+}
+
+#[derive(Debug, Clone)]
 pub struct FileEntry {
     pub name: String,
     pub path: PathBuf,
@@ -14,14 +23,6 @@ pub struct FileEntry {
     pub modified: Option<chrono::DateTime<chrono::Utc>>,
     pub is_hidden: bool,
     pub extension: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub enum SortBy {
-    Name,
-    Size,
-    Modified,
-    Type,
 }
 
 impl FileEntry {
