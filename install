@@ -34,8 +34,8 @@ cargo build --release
 
 # Install binary
 echo "📲 Installing mdtui binary..."
-sudo cp target/release/mdtui /usr/local/bin/mdtui
-sudo chmod +x /usr/local/bin/mdtui
+cp target/release/mdtui ~/.local/bin/mdtui
+chmod +x ~/.local/bin/mdtui
 
 echo "✅ Installation complete!"
 echo "Run 'mdtui' to start"
