@@ -259,7 +259,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match state.mode {
                     Mode::FileBrowser => {
                         match key.code {
-                            KeyCode::Char('q') => break,
+                            KeyCode::Char('q') => {
+                                // Cambiar al directorio actual antes de salir
+                                let _ = std::env::set_current_dir(&state.navigator.current_path);
+                                break;
+                            }
                             KeyCode::Char('j') | KeyCode::Down => {
                                 state.selected_index = (state.selected_index + 1)
                                     .min(state.navigator.entries.len().saturating_sub(1));
@@ -324,6 +328,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if let Some(ref mut editor) = state.editor {
                             match key.code {
                                 KeyCode::Char('q') if key.modifiers.contains(event::KeyModifiers::CONTROL) => {
+                                    let _ = std::env::set_current_dir(&state.navigator.current_path);
                                     break;
                                 }
                                 KeyCode::Char('s') if key.modifiers.contains(event::KeyModifiers::CONTROL) => {
